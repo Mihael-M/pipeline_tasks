@@ -29,7 +29,6 @@ jobs:
           path: .
       - name: Run Linting
         uses: super-linter/super-linter/slim@v7
-        with:
-          DEFAULT_BRANCH: main
+        env:
+          # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
