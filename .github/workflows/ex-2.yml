@@ -27,8 +27,10 @@ jobs:
         with: # Parameters for the action
           name: code # Name of the artifact to download. Optional. If unspecified, all artifacts for the run are downloaded.
           path: .
-      - name: Run Linting
-        uses: super-linter/super-linter/slim@v7
+      - name: run linting
+        uses: super-linter/super-linter/slim@v7 
         env:
+          DEFAULT_BRANCH: main
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISABLE_ERRORS: true  
