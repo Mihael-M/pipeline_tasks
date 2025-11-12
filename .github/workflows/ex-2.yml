@@ -1,85 +1,80 @@
-name: Excersice 2
+name: Exercise 2
+
 on: push
+
 jobs:
 
-  markdownlint-cli:
+  markdownlint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-  Build:
+        uses: actions/checkout@v4
+      - name: Run markdownlint
+        uses: nosborn/github-action-markdown-cli@v3.5.0
+        with:
+          files: .
+          config_file: .markdownlint.yaml
+          dot: true
+          ignore_files: examples/ignore/*
+          ignore_path: examples/.markdownlintignore
+          rules: examples/rules/custom.js
+
+  build:
     runs-on: ubuntu-latest
     container: gradle:6-jdk11
     steps:
-      - name: Clone down repository
-        uses: actions/checkout@v4       
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Build application
         run: ci/build-app.sh      
-      - name: Test
+
+      - name: Run unit tests
         run: ci/unit-test-app.sh
-      - name: Upload Artifact # Name of the step
-        uses: actions/upload-artifact@v4 # Action to use
-        with: # Parameters for the action
+
+      - name: Check if artifact exists
+        id: check_artifact
+        run: |
+          if [ -d ./artifact_marker ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Artifact
+        if: ${{ steps.check_artifact.outputs.exists == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
           name: code
           path: .
           include-hidden-files: true
-          
-  Linting:
-    needs: Build
+
+  linting:
+    needs: build
     runs-on: ubuntu-latest
     container: gradle:6-jdk11
     steps:
-      - name: Download Artifact # Name of the step
-        uses: actions/download-artifact@v4 # Action to use
-        with: # Parameters for the action
-          name: code # Name of the artifact to download. Optional. If unspecified, all artifacts for the run are downloaded.
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: code
           path: .
-      - name: run linting
-        uses: super-linter/super-linter/slim@v7 
+      - name: Run Super Linter
+        uses: super-linter/super-linter/slim@v7
         env:
           DEFAULT_BRANCH: main
-          # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISABLE_ERRORS: true  
-          
-  SonarBuild:
-    name: Build and analyze
+
+  sonarqube:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: 'zulu' # Alternative distribution options are available
-      - name: Cache SonarQube packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: ${{ runner.os }}-gradle
-      - name: Build and analyze
+          fetch-depth: 0
+      - name: Run SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew build sonar --info
-        
-  sonarqube:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        # Disabling shallow clone is recommended for improving relevancy of reporting
-        fetch-depth: 0
-    - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
