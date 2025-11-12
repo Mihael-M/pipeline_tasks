@@ -60,7 +60,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: code
+          name: build
           path: .
       - name: Run Super Linter
         uses: super-linter/super-linter/slim@v7
