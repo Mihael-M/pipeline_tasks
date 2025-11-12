@@ -1,14 +1,23 @@
 name: Excersice 2
 on: push
 jobs:
-  editorconfig:
+
+  markdownlint-cli:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: editorconfig-checker/action-editorconfig-checker@main
-      - run: editorconfig-checker
+      - name: markdownlint-cli
+      - uses: nosborn/github-action-markdown-cli@v3.5.0
+        with:
+          files: .
+          
+#  editorconfig:
+ #   runs-on: ubuntu-latest
+  #  steps:
+   #   - uses: actions/checkout@v4
+    #  - uses: editorconfig-checker/action-editorconfig-checker@main
+     # - run: editorconfig-checker
+      
   Build:
-    needs: [editorconfig]
     runs-on: ubuntu-latest
     container: gradle:6-jdk11
     steps:
